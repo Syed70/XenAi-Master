@@ -1,0 +1,47 @@
+# 📦 Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ✅ Next.js build output
+.next/
+out/
+build/
+dist/
+
+# 🧪 Testing
+coverage/
+
+# 🛑 Environment / Secrets
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.crt
+*.p12
+*serviceAccount*.json
+firebase-adminsdk*.json
+
+# ☁️ Deployment
+.vercel/
+
+# 💻 OS / Misc
+.DS_Store
+
+# ⚙️ Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
