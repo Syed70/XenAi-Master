@@ -162,7 +162,7 @@ function getOrCreateMemory(conversationId) {
 // Streaming POST endpoint
 export async function POST(request) {
   try {
-    const { message, conversationId = "default" } = await request.json();
+    const { message, conversationId = "default", forceProvider } = await request.json();
     
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -187,9 +187,18 @@ export async function POST(request) {
       // include gemini only if at least one key under limit
       const gKeys = providers.gemini.allKeys;
       const hasGeminiCapacity = gKeys.some((_, idx) => (providers.gemini.used[idx] || 0) < providers.gemini.limitPerKey);
-      if (hasGeminiCapacity) order.push('gemini');
-      if (providers.cohere.keys.length && Date.now() >= cohereCooldownUntil) order.push('cohere');
-      if (providers.openrouter.keys.length && Date.now() >= openrouterCooldownUntil) order.push('openrouter');
+      const canGemini = hasGeminiCapacity;
+      const canCohere = providers.cohere.keys.length && Date.now() >= cohereCooldownUntil;
+      const canOpenRouter = providers.openrouter.keys.length && Date.now() >= openrouterCooldownUntil;
+
+      // Optional force provider for testing
+      if (forceProvider === 'openrouter' && canOpenRouter) return ['openrouter', ...(canGemini ? ['gemini'] : []), ...(canCohere ? ['cohere'] : [])];
+      if (forceProvider === 'gemini' && canGemini) return ['gemini', ...(canCohere ? ['cohere'] : []), ...(canOpenRouter ? ['openrouter'] : [])];
+      if (forceProvider === 'cohere' && canCohere) return ['cohere', ...(canGemini ? ['gemini'] : []), ...(canOpenRouter ? ['openrouter'] : [])];
+
+      if (canGemini) order.push('gemini');
+      if (canCohere) order.push('cohere');
+      if (canOpenRouter) order.push('openrouter');
       return order;
     };
     const providerOrder = buildOrder();
@@ -200,6 +209,7 @@ export async function POST(request) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        let completed = false;
         // If nothing is available, send a soft fallback message and exit gracefully
         if (maxAttempts === 0) {
           const meta = JSON.stringify({ type: 'provider', provider: 'system', model: 'none' });
@@ -473,6 +483,7 @@ export async function POST(request) {
               totalChunks: chunkCount,
             });
             controller.enqueue(encoder.encode(`data: ${completionData}\n\n`));
+            completed = true;
             controller.close();
           } catch (err) {
             console.error(`❌ Provider ${providerName} failed:`, err.message);
@@ -492,6 +503,7 @@ export async function POST(request) {
             controller.enqueue(encoder.encode(`data: ${dataMsg}\n\n`));
             const doneMsg = JSON.stringify({ type: 'complete', fullResponse: polite, conversationId, totalChunks: 1 });
             controller.enqueue(encoder.encode(`data: ${doneMsg}\n\n`));
+            completed = true;
             controller.close();
             
           }
