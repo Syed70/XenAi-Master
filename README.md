@@ -134,7 +134,7 @@ Certificates ✅
 
 👨‍💻 Team Members
 Name	Role
-Syed Abdulla : Lead Developer / Full Stack Enginner
+Syed Abdulla : Lead Developer / Full Stack Engineer
 Moin Ahmed : Developer
 Prathap Sharma : Developer
 Sumit Lalasingi	: Developer
